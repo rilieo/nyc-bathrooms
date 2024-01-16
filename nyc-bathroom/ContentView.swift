@@ -1,5 +1,4 @@
 //  ContentView.swift
-//  nyc-bathroom
 
 import SwiftUI
 import MapKit
@@ -22,8 +21,7 @@ struct ContentView: View {
             ForEach(mapResults, id: \.self) { item in
                 if routeDisplaying {
                     if item == routeDestination {
-                        .sheet(isPresented: $routeDisplaying, content: RouteView()
-                        )
+                        Marker(item: item)
                     }
                 }
                 else{
@@ -60,6 +58,13 @@ struct ContentView: View {
                 .presentationDetents([.height(400)])
                 .presentationBackgroundInteraction(.enabled(upThrough: .height(400)))
                 .presentationCornerRadius(12)
+        })
+        .sheet(isPresented: $getDirections, content: {
+            RouteView(getDirections: $getDirections, routeDisplaying: $routeDisplaying, route: $route)
+                .presentationDetents([.height(50)])
+                .presentationBackgroundInteraction(.enabled(upThrough: .height(50)))
+                .presentationCornerRadius(12)
+            
         })
         .mapControls(){
             MapPitchToggle()

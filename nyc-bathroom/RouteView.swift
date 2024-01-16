@@ -1,18 +1,52 @@
-//
 //  RouteView.swift
-//  nyc-bathroom
-//
-//  Created by riley dou on 2024/1/12.
-//
 
 import SwiftUI
+import MapKit
 
 struct RouteView: View {
+    @Binding var getDirections : Bool
+    @Binding var routeDisplaying : Bool
+    @Binding var route : MKRoute?
+
     var body: some View {
-        Text(/*@START_MENU_TOKEN@*/"Hello, World!"/*@END_MENU_TOKEN@*/)
+        HStack {
+            HStack(spacing: 50) {
+                VStack {
+                    Text("XX:XX")
+                        .font(.headline)
+                    Text("arrival")
+                        .font(.footnote)
+                }
+                
+                VStack {
+                    Text("Time")
+                        .font(.headline)
+                    Text("hrs")
+                        .font(.footnote)
+                }
+                
+                VStack {
+                    Text("Distance")
+                        .font(.headline)
+                    Text("mi")
+                        .font(.footnote)
+                }
+                
+                Button {
+                    getDirections.toggle()
+                    routeDisplaying.toggle()
+                    route = nil
+                } label: {
+                    Image(systemName: "xmark.circle.fill")
+                        .foregroundStyle(.gray)
+                }
+            }
+        }
+        .padding(.top, 25)
+
     }
 }
 
 #Preview {
-    RouteView()
+    RouteView(getDirections: .constant(false), routeDisplaying: .constant(false), route: .constant(nil))
 }

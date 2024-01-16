@@ -1,9 +1,4 @@
-//
 //  LocationDetailsView.swift
-//  nyc-bathroom
-//
-//  Created by riley dou on 2024/1/7.
-//
 
 import SwiftUI
 import MapKit
