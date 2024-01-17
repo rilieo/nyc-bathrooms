@@ -2,6 +2,7 @@
 
 import SwiftUI
 import MapKit
+import CoreLocation
 
 struct ContentView: View {
     @State private var cameraPosition = MapCameraPosition.automatic
@@ -13,10 +14,28 @@ struct ContentView: View {
     @State private var routeDisplaying = false
     @State private var route : MKRoute?
     @State private var routeDestination : MKMapItem?
-
+    @State private var distance = 0.0
+    @State private var travelTime = 0.0
+    @State private var timeLabel : String = ""
+    
     var body: some View {
         Map(position: $cameraPosition, selection: $mapSelection) {
-            Marker("My Location", coordinate: .userLocation)
+            Annotation("My Location", coordinate: .userLocation) {
+                ZStack {
+                    Circle()
+                        .frame(width: 40, height: 40)
+                        .foregroundStyle(.blue.opacity(0.25))
+                    
+                    Circle()
+                        .frame(width: 20, height: 20)
+                        .foregroundStyle(.white)
+                    
+                    Circle()
+                        .frame(width: 15, height: 15)
+                        .foregroundStyle(.blue)
+                        
+                }
+            }
             
             ForEach(mapResults, id: \.self) { item in
                 if routeDisplaying {
@@ -60,7 +79,7 @@ struct ContentView: View {
                 .presentationCornerRadius(12)
         })
         .sheet(isPresented: $getDirections, content: {
-            RouteView(getDirections: $getDirections, routeDisplaying: $routeDisplaying, route: $route)
+            RouteView(selection: $mapSelection, getDirections: $getDirections, routeDisplaying: $routeDisplaying, route: $route, travelTime: $travelTime, distance: $distance, timeLabel: $timeLabel)
                 .presentationDetents([.height(50)])
                 .presentationBackgroundInteraction(.enabled(upThrough: .height(50)))
                 .presentationCornerRadius(12)
@@ -75,6 +94,7 @@ struct ContentView: View {
 }
 
 extension ContentView {
+    
     func searchLocations() async {
         let request = MKLocalSearch.Request()
         request.naturalLanguageQuery = searchText
@@ -82,22 +102,22 @@ extension ContentView {
         
         let search = try? await MKLocalSearch(request: request).start()
         self.mapResults = search?.mapItems ?? []
-        
-//        if mapResults != [] {
-//            let rect = boundingMapR
-//        }
     }
     
     func fetchRoute() {
         let request = MKDirections.Request()
         request.source = MKMapItem(placemark: .init(coordinate: .userLocation))
         request.destination = mapSelection
+        request.transportType = .walking
         
         Task {
             // calculate route
             let result = try? await MKDirections(request: request).calculate()
             route = result?.routes.first
             routeDestination = mapSelection
+            
+            calculateDistance()
+            calculateTravelTime()
             
             withAnimation(.snappy) {
                 routeDisplaying = true
@@ -110,6 +130,66 @@ extension ContentView {
             }
         }
     }
+    
+    func calculateDistance() {
+        let latitude1 = routeDestination?.placemark.coordinate.latitude
+        let longitude1 = routeDestination?.placemark.coordinate.longitude
+        let latitude2 = MKMapItem(placemark: .init(coordinate: .userLocation)).placemark.coordinate.latitude
+        let longitude2 = MKMapItem(placemark: .init(coordinate: .userLocation)).placemark.coordinate.longitude
+        
+        let location1 = CLLocation(latitude: latitude1 ?? 0.0, longitude: longitude1 ?? 0.0)
+        let location2 = CLLocation(latitude: latitude2, longitude: longitude2)
+        
+        // convert to miles
+        self.distance = location1.distance(from: location2) / 1609
+        
+    }
+    
+    func calculateTravelTime() {
+        let time = route?.expectedTravelTime ?? 0.0
+        var travelTime : Double
+        
+        // second(s)
+        if time < 60 {
+            travelTime = time
+            
+            if time == 1 {
+                self.timeLabel = "sec"
+            }
+            else {
+                self.timeLabel = "secs"
+            }
+        }
+        // minute(s)
+        else if time < 3600 {
+            var minutes = time / 60.0
+            minutes = round(minutes * 1000) / 1000
+            travelTime = minutes
+            
+            if minutes == 1 {
+                self.timeLabel = "min"
+            }
+            else {
+                self.timeLabel = "mins"
+            }
+        }
+        // hour(s)
+        else {
+            var hours = time / 3600.0
+            hours = round(hours * 1000) / 1000
+            travelTime = hours
+            
+            if hours == 1 {
+                self.timeLabel = "hr"
+            }
+            else {
+                self.timeLabel = "hrs"
+            }
+        }
+        
+        self.travelTime = travelTime
+    }
+
 }
 
 extension CLLocationCoordinate2D {
