@@ -1,17 +1,27 @@
-//
-//  nyc_bathroomApp.swift
-//  nyc-bathroom
-//
-//  Created by riley dou on 2024/1/5.
-//
-
 import SwiftUI
+import FirebaseCore
+
+
+class AppDelegate: NSObject, UIApplicationDelegate {
+  func application(_ application: UIApplication,
+                   didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey : Any]? = nil) -> Bool {
+    FirebaseApp.configure()
+
+    return true
+  }
+}
 
 @main
-struct nyc_bathroomApp: App {
-    var body: some Scene {
-        WindowGroup {
-            ContentView()
-        }
+struct YourApp: App {
+  // register app delegate for Firebase setup
+  @UIApplicationDelegateAdaptor(AppDelegate.self) var delegate
+
+
+  var body: some Scene {
+    WindowGroup {
+      NavigationView {
+        ContentView()
+      }
     }
+  }
 }

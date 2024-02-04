@@ -16,13 +16,6 @@ struct RouteView: View {
         HStack {
             HStack(spacing: 50) {
                 VStack {
-                    Text("XX:XX")
-                        .font(.headline)
-                    Text("arrival")
-                        .font(.footnote)
-                }
-                
-                VStack {
                     Text("\(travelTime, specifier: "%.2f")")
                         .font(.headline)
                     Text(timeLabel)

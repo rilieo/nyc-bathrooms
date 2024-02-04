@@ -27,10 +27,10 @@ struct LocationDetailsView: View {
                                 .foregroundColor(.gray)
                         }
                     }
-                    
-                    Text(mapSelection?.placemark.title ?? "")
-                        .font(.footnote)
-                        .foregroundStyle(.gray)
+//                    
+//                    Text(mapSelection?.placemark.title ?? "")
+//                        .font(.footnote)
+//                        .foregroundStyle(.gray)
                 }
                 .padding()
             }
@@ -45,7 +45,7 @@ struct LocationDetailsView: View {
                 ContentUnavailableView("No Preview Available", systemImage: "eye.slash")
             }
             
-            HStack() {
+            HStack {
                 Button {
                     getDirections = true
                     show = false
@@ -68,13 +68,17 @@ struct LocationDetailsView: View {
 }
 
 extension LocationDetailsView {
+    
     // fetch look around preview
     func fetchScene() {
         // if user selects map, then fetch scene
         if let mapSelection {
             lookAroundScene = nil
+            let latitude = mapSelection.placemark.coordinate.latitude
+            let longitude = mapSelection.placemark.coordinate.longitude
+            let coordinate = CLLocationCoordinate2D(latitude: latitude, longitude: longitude)
             Task {
-                let request = MKLookAroundSceneRequest(mapItem: mapSelection)
+                let request = MKLookAroundSceneRequest(coordinate: coordinate)
                 lookAroundScene = try? await request.scene
             }
         }

@@ -5,21 +5,26 @@ import MapKit
 import CoreLocation
 
 struct ContentView: View {
-    @State private var cameraPosition = MapCameraPosition.automatic
+//    @State private var cameraPosition = MapCameraPosition.automatic
     @State private var searchText : String = ""
     @State private var mapResults = [MKMapItem]()
-    @State private var mapSelection : MKMapItem? // ? is optional
+    @State private var mapSelection : MKMapItem?
     @State private var showDetails = false
     @State private var getDirections = false
     @State private var routeDisplaying = false
     @State private var route : MKRoute?
     @State private var routeDestination : MKMapItem?
-    @State private var distance = 0.0
-    @State private var travelTime = 0.0
+    @State private var distance : Double = 0.0
+    @State private var travelTime : Double = 0.0
     @State private var timeLabel : String = ""
     
+    @ObservedObject var model = ViewModel()
+    
+    @StateObject private var locationManager = LocationManager()
+    
     var body: some View {
-        Map(position: $cameraPosition, selection: $mapSelection) {
+        Map(position: $locationManager.region, selection: $mapSelection) {
+            
             Annotation("My Location", coordinate: .userLocation) {
                 ZStack {
                     Circle()
@@ -37,17 +42,20 @@ struct ContentView: View {
                 }
             }
             
-            ForEach(mapResults, id: \.self) { item in
+            // create markers for each location
+            ForEach(model.list, id: \.self) { item in
                 if routeDisplaying {
                     if item == routeDestination {
                         Marker(item: item)
                     }
                 }
-                else{
+                else {
                     Marker(item: item)
                 }
+                
             }
             
+            // generate route outline
             if let route {
                 MapPolyline(route.polyline)
                     .stroke(.blue, lineWidth: 7)
@@ -60,9 +68,6 @@ struct ContentView: View {
                 .background(.white)
                 .padding(8)
                 .shadow(radius: 10)
-        }
-        .onSubmit(of: .text) {
-            Task { await searchLocations() }
         }
         .onChange(of: mapSelection, { oldValue, newValue in
             showDetails = newValue != nil
@@ -85,25 +90,23 @@ struct ContentView: View {
                 .presentationCornerRadius(12)
             
         })
+        .onAppear {
+            locationManager.checkIfLocationIsEnabled()
+        }
         .mapControls(){
             MapPitchToggle()
             MapUserLocationButton()
         }
-        
+    }
+    
+    init() {
+        model.getLocations()
     }
 }
 
 extension ContentView {
     
-    func searchLocations() async {
-        let request = MKLocalSearch.Request()
-        request.naturalLanguageQuery = searchText
-        request.region = .userRegion
-        
-        let search = try? await MKLocalSearch(request: request).start()
-        self.mapResults = search?.mapItems ?? []
-    }
-    
+    // generate route to destination
     func fetchRoute() {
         let request = MKDirections.Request()
         request.source = MKMapItem(placemark: .init(coordinate: .userLocation))
@@ -125,13 +128,15 @@ extension ContentView {
                 
                 // adjust camera position to fit whole route
                 if let rect = route?.polyline.boundingMapRect, routeDisplaying {
-                    cameraPosition = .rect(rect)
+                    locationManager.region = .rect(rect)
                 }
             }
         }
     }
     
+    // calculate distance between two points
     func calculateDistance() {
+        
         let latitude1 = routeDestination?.placemark.coordinate.latitude
         let longitude1 = routeDestination?.placemark.coordinate.longitude
         let latitude2 = MKMapItem(placemark: .init(coordinate: .userLocation)).placemark.coordinate.latitude
@@ -145,12 +150,13 @@ extension ContentView {
         
     }
     
+    // calculate travel time to destination
     func calculateTravelTime() {
         let time = route?.expectedTravelTime ?? 0.0
         var travelTime : Double
         
-        // second(s)
-        if time < 60 {
+        // convert to second(s)
+        if (time < 60) {
             travelTime = time
             
             if time == 1 {
@@ -160,26 +166,26 @@ extension ContentView {
                 self.timeLabel = "secs"
             }
         }
-        // minute(s)
-        else if time < 3600 {
+        // convert to minute(s)
+        else if (time < 3600) {
             var minutes = time / 60.0
             minutes = round(minutes * 1000) / 1000
             travelTime = minutes
             
-            if minutes == 1 {
+            if (minutes == 1) {
                 self.timeLabel = "min"
             }
             else {
                 self.timeLabel = "mins"
             }
         }
-        // hour(s)
+        // convert to hour(s)
         else {
             var hours = time / 3600.0
             hours = round(hours * 1000) / 1000
             travelTime = hours
             
-            if hours == 1 {
+            if (hours == 1) {
                 self.timeLabel = "hr"
             }
             else {
@@ -194,7 +200,7 @@ extension ContentView {
 
 extension CLLocationCoordinate2D {
     static var userLocation : CLLocationCoordinate2D {
-        return .init(latitude: 29.557110, longitude: -95.421643)
+        return .init(latitude: 40.69428652509099, longitude: -73.9864184163171)
     }
 }
 
@@ -203,6 +209,55 @@ extension MKCoordinateRegion {
         return .init(center: .userLocation,
                      latitudinalMeters: 1000,
                      longitudinalMeters: 1000)
+    }
+}
+
+final class LocationManager: NSObject, ObservableObject, CLLocationManagerDelegate {
+    @Published var region = MapCameraPosition.region(
+        MKCoordinateRegion(
+            center: CLLocationCoordinate2D(latitude: 40.694479714906905, longitude: -73.98657742163459),
+            span: MKCoordinateSpan(latitudeDelta: 0.1, longitudeDelta: 0.1)
+        )
+    )
+    
+    var locationManager : CLLocationManager?
+    
+    func checkIfLocationIsEnabled() {
+        if CLLocationManager.locationServicesEnabled() {
+            locationManager = CLLocationManager()
+            locationManager!.delegate = self
+        }
+        else {
+            print("Location services not enabled")
+        }
+    }
+    
+    private func checkLocationAuthorization() {
+        guard let locationManager = self.locationManager else { return }
+        
+        switch locationManager.authorizationStatus {
+            
+        case .notDetermined :
+            locationManager.requestWhenInUseAuthorization()
+        case .restricted :
+            print("Location Restricted")
+            
+        case .denied :
+            print("Location Denied")
+        
+        case .authorizedWhenInUse, .authorizedAlways :
+            region = MapCameraPosition.region(
+                MKCoordinateRegion(
+                    center: locationManager.location?.coordinate ?? CLLocationCoordinate2D(latitude: 0, longitude: 0),
+                    span:
+                        MKCoordinateSpan(latitudeDelta: 0.1, longitudeDelta: 0.1)
+                )
+            )
+        @unknown default :
+            break
+            
+        }
+        
     }
 }
 
