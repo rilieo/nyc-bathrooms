@@ -13,10 +13,13 @@ struct LocationDetailsView: View {
         VStack {
             HStack {
                 VStack(alignment: .leading) {
-                    HStack(spacing: 220){
-                        Text(mapSelection?.placemark.name ?? "")
+                    HStack(){
+                        Text(mapSelection?.placemark.name ?? "No Location")
                             .font(.title2)
                             .fontWeight(.semibold)
+    
+                        Spacer()
+                        
                         Button() {
                             show.toggle()
                             mapSelection = nil
@@ -27,7 +30,7 @@ struct LocationDetailsView: View {
                                 .foregroundColor(.gray)
                         }
                     }
-//                    
+                    
 //                    Text(mapSelection?.placemark.title ?? "")
 //                        .font(.footnote)
 //                        .foregroundStyle(.gray)
@@ -45,18 +48,18 @@ struct LocationDetailsView: View {
                 ContentUnavailableView("No Preview Available", systemImage: "eye.slash")
             }
             
-            HStack {
-                Button {
-                    getDirections = true
-                    show = false
-                } label : {
-                    Text("Get Directions")
-                        .frame(width: 140, height: 48)
-                        .foregroundStyle(.white)
-                        .background(.blue)
-                        .clipShape(RoundedRectangle(cornerRadius: 12))
-                }
+            
+            Button {
+                getDirections = true
+                show = false
+            } label : {
+                Text("Get Directions")
+                    .frame(width: 140, height: 48)
+                    .foregroundStyle(.white)
+                    .background(.blue)
+                    .clipShape(RoundedRectangle(cornerRadius: 12))
             }
+            .padding()
         }
         .onAppear {
             fetchScene()
@@ -76,9 +79,9 @@ extension LocationDetailsView {
             lookAroundScene = nil
             let latitude = mapSelection.placemark.coordinate.latitude
             let longitude = mapSelection.placemark.coordinate.longitude
-            let coordinate = CLLocationCoordinate2D(latitude: latitude, longitude: longitude)
+            print(latitude, longitude)
             Task {
-                let request = MKLookAroundSceneRequest(coordinate: coordinate)
+                let request = MKLookAroundSceneRequest(coordinate: .init(latitude: latitude, longitude: longitude))
                 lookAroundScene = try? await request.scene
             }
         }

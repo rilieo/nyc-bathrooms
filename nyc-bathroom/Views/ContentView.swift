@@ -5,7 +5,6 @@ import MapKit
 import CoreLocation
 
 struct ContentView: View {
-//    @State private var cameraPosition = MapCameraPosition.automatic
     @State private var searchText : String = ""
     @State private var mapResults = [MKMapItem]()
     @State private var mapSelection : MKMapItem?
@@ -61,13 +60,15 @@ struct ContentView: View {
                     .stroke(.blue, lineWidth: 7)
             }
         }
-        .overlay(alignment: .top){
-            TextField("Search for a place", text: $searchText)
-                .font(.subheadline)
-                .padding(12)
-                .background(.white)
-                .padding(8)
-                .shadow(radius: 10)
+        .overlay(alignment: .topLeading){
+            Link(destination: URL(string: "https://github.com/rilieo/nyc-bathrooms/issues")!) {
+                Image(systemName: "plus.app.fill")
+                    .resizable()
+                    .frame(width: 30, height: 30)
+                    .foregroundStyle(.gray)
+            }
+            .padding()
+
         }
         .onChange(of: mapSelection, { oldValue, newValue in
             showDetails = newValue != nil
